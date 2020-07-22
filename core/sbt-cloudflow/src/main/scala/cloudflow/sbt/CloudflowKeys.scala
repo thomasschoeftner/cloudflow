@@ -68,7 +68,7 @@ trait CloudflowTaskKeys {
   private[sbt] val allProjectsWithStreamletScannerPlugin =
     taskKey[Seq[ProjectReference]]("All projects that use the streamlet scanner plugin.")
 
-  private[sbt] val allProjectsWithCloudflowBasePlugin =
+  private[sbt] val allProjectDependenciesWithCloudflowBasePlugin =
     taskKey[Seq[ProjectReference]]("All projects that use the CloudflowBasePlugin.")
 
   private[sbt] val allCloudflowStreamletDescriptors =
