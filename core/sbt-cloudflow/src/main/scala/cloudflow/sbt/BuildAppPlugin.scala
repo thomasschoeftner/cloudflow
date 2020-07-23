@@ -45,7 +45,7 @@ object BuildAppPlugin extends AutoPlugin {
     }
 
   override def projectSettings = Seq(
-    allProjectsWithCloudflowBasePlugin := Def.taskDyn {
+    allProjectDependenciesWithCloudflowBasePlugin := Def.taskDyn {
           Def.task {
             projectWithCloudflowBasePlugin.all(ScopeFilter(inAnyProject)).value.flatten
           }
@@ -53,7 +53,7 @@ object BuildAppPlugin extends AutoPlugin {
     cloudflowApplicationCR := buildApp.dependsOn(verifyBlueprint).value,
     allBuildAndPublish := (Def
           .taskDyn {
-            val filter = ScopeFilter(inProjects(allProjectsWithCloudflowBasePlugin.value: _*))
+            val filter = ScopeFilter(inProjects(allProjectDependenciesWithCloudflowBasePlugin.value: _*))
             Def.task {
               val allValues = buildAndPublishImage.all(filter).value
               allValues
