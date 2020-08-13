@@ -1,8 +1,18 @@
 package cloudflow.akkastream.util.scaladsl
 
-import cloudflow.akkastream.{AkkaStreamletContext, AkkaStreamletLogic}
+import akka.NotUsed
+import akka.kafka.ConsumerMessage.Committable
+import akka.stream.scaladsl.Sink
+import cloudflow.akkastream.scaladsl.FlowWithCommittableContext
+import cloudflow.akkastream.{AkkaStreamlet, AkkaStreamletContext, AkkaStreamletLogic}
+import cloudflow.streamlets.{RoundRobinPartitioner, StreamletShape}
+import cloudflow.streamlets.avro.AvroOutlet
 
-abstract class KafkaConsumerLogic(implicit context: AkkaStreamletContext) extends AkkaStreamletLogic {
+import scala.reflect.ClassTag
+
+abstract class KafkaConsumerLogic[RawKey, RawMsg](implicit context: AkkaStreamletContext) extends AkkaStreamletLogic {
+  def sink(): Sink[((RawKey, RawMsg), Committable), NotUsed]
+
   def run(): Unit = {
     // TODO - configure ConsumerSettings
     //    - Kafka Bootstrap servers
@@ -13,10 +23,25 @@ abstract class KafkaConsumerLogic(implicit context: AkkaStreamletContext) extend
     // TODO - streaming
     //    - subscribe to topic
     //    - transform to FlowWithContext[(Key, Value), Committable]
-    //    - processing flow
+    //    - send to sink()
     //      - decode key & value
     // TODO - support cancelling/shutdown via Control
-    // 2. subscribe to topic
+    FlowWithCommittableContext[(RawKey, RawMsg)]
+      .asFlow
+      .to(sink())
+  }
+}
 
+class TestKafkaIngress[Out <: org.apache.avro.specific.SpecificRecordBase : ClassTag] extends AkkaStreamlet {
+  val out = AvroOutlet[Out]("hans").withPartitioner(RoundRobinPartitioner)
+  val shape = StreamletShape(out)
+
+  override protected def createLogic(): AkkaStreamletLogic = new KafkaConsumerLogic[String, String] {
+
+    def stringKeyValToOut(keyVal: (String, String)): Out = ???
+    override def sink(): Sink[((String, String), Committable), NotUsed] = FlowWithCommittableContext[(String, String)]
+      .map(stringKeyValToOut)
+      .asFlow
+      .to(committableSink(out))
   }
 }
